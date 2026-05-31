@@ -112,6 +112,28 @@ print(f"Saved {result['savings_pct']:.1f}% ({result['original_tokens']} → {res
 
 ---
 
+## `ptk.savings() -> dict`
+
+Returns cumulative token savings recorded for the current OS user. `ptk.minimize()`,
+`ptk.stats()`, and `ptk(obj)` update this counter automatically.
+
+```python
+import ptk
+
+ptk.minimize(api_response)
+ptk.savings()
+# → {"calls": 1, "total_saved_tokens": 658, "estimated": True, ...}
+```
+
+Only numeric metadata is stored. Raw inputs, minimized outputs, filenames, prompts,
+and user identifiers are never written to the savings file.
+
+Use `ptk.reset_savings()` to reset totals. Use `ptk.configure_savings(enabled=False)`
+or `PTK_SAVINGS_DISABLED=1` to disable automatic tracking. Set `PTK_SAVINGS_PATH`
+to choose a custom state file.
+
+---
+
 ## `ptk.detect_type(obj) → str`
 
 Returns the detected content type without compressing.

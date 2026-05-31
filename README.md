@@ -139,6 +139,18 @@ ptk.stats(response)
 # }
 
 # ── callable shorthand ───────────────────────────────────────
+# Cumulative savings: personal local counters
+ptk.savings()
+# {
+#   "calls": 42,
+#   "total_saved_tokens": 12345,
+#   "estimated": True,
+#   ...
+# }
+
+ptk.reset_savings()
+ptk.configure_savings(enabled=False)  # disable automatic tracking in this process
+
 ptk(response)  # same as ptk.minimize(response)
 
 # ── preserve nulls when they carry meaning ───────────────────
@@ -217,6 +229,17 @@ Before/after demo: [`examples/log_triage.py`](examples/log_triage.py)
 ### `ptk.stats(obj, **kw) → dict`
 
 Same interface as `minimize`. Returns `output`, `original_tokens`, `minimized_tokens`, `savings_pct`, `content_type`.
+
+### `ptk.savings() -> dict`
+
+Returns cumulative token savings recorded for the current OS user. `ptk.minimize()`,
+`ptk.stats()`, and the `ptk(obj)` shorthand all update the counter automatically.
+Only numeric metadata is stored locally; raw inputs and minimized outputs are never
+written to the savings file.
+
+Use `ptk.reset_savings()` to clear totals. Use `ptk.configure_savings(enabled=False)`
+or `PTK_SAVINGS_DISABLED=1` to disable automatic tracking. Set `PTK_SAVINGS_PATH`
+to choose a custom state file.
 
 ### `ptk(obj)` callable shorthand
 

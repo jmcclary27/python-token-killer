@@ -25,7 +25,7 @@ class ListMinimizer(Minimizer):
     def _minimize(
         self, obj: Any, *, aggressive: bool = False, strip_nulls: bool = True, **kw: Any
     ) -> str:
-        if not isinstance(obj, (list, tuple)):
+        if not isinstance(obj, list | tuple):
             return json.dumps(obj, separators=(",", ":"), default=str)
 
         if strip_nulls:

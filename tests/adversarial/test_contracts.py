@@ -41,7 +41,7 @@ class TestAPIContracts:
         assert isinstance(s["output"], str)
         assert isinstance(s["original_len"], int)
         assert isinstance(s["minimized_len"], int)
-        assert isinstance(s["savings_pct"], (int, float))
+        assert isinstance(s["savings_pct"], int | float)
         assert isinstance(s["content_type"], str)
         assert s["original_len"] >= 0
         assert s["minimized_len"] >= 0

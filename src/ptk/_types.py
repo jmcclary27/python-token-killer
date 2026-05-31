@@ -97,7 +97,7 @@ def detect(obj: object) -> ContentType:
     """Detect content type from a Python object. O(1) for non-str types."""
     if isinstance(obj, dict):
         return ContentType.DICT
-    if isinstance(obj, (list, tuple)):
+    if isinstance(obj, list | tuple):
         return ContentType.LIST
     if not isinstance(obj, str):
         # fallback: stringify anything else and treat as text

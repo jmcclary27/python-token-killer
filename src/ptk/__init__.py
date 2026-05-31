@@ -10,8 +10,11 @@ Minimize LLM tokens from Python objects in one call.
 
 from __future__ import annotations
 
-from typing import Any
+import os
+from importlib import import_module
+from typing import Any, cast
 
+from ptk import _savings
 from ptk._base import MinResult, _serialize
 from ptk._types import ContentType, detect
 from ptk.minimizers import (
@@ -28,6 +31,9 @@ __all__ = [
     "minimize",
     "stats",
     "detect_type",
+    "savings",
+    "reset_savings",
+    "configure_savings",
     "MinResult",
     "ContentType",
     # minimizer classes (for direct use / subclassing)
@@ -76,8 +82,11 @@ def minimize(
         Minimized string representation.
     """
     ct = _resolve_type(obj, content_type)
-    result: str = _ROUTER[ct].run(obj, aggressive=aggressive, strip_nulls=strip_nulls, **kw).output
-    return result
+    result = _ROUTER[ct].run(obj, aggressive=aggressive, strip_nulls=strip_nulls, **kw)
+    original_str = _serialize(obj)
+    orig_tok, min_tok, estimated, tokenizer = _estimate_tokens_info(original_str, result.output)
+    _savings.record(orig_tok, min_tok, estimated=estimated, tokenizer=tokenizer)
+    return cast(str, result.output)
 
 
 def stats(
@@ -105,7 +114,8 @@ def stats(
     result = _ROUTER[ct].run(obj, aggressive=aggressive, strip_nulls=strip_nulls, **kw)
 
     original_str = _serialize(obj)
-    orig_tok, min_tok = _estimate_tokens(original_str, result.output)
+    orig_tok, min_tok, estimated, tokenizer = _estimate_tokens_info(original_str, result.output)
+    _savings.record(orig_tok, min_tok, estimated=estimated, tokenizer=tokenizer)
 
     return {
         "output": result.output,
@@ -121,6 +131,25 @@ def stats(
 def detect_type(obj: Any) -> str:
     """Return the auto-detected content type as a lowercase string."""
     return detect(obj).name.lower()
+
+
+def savings() -> dict[str, Any]:
+    """Return cumulative token savings recorded for this user."""
+    return _savings.current()
+
+
+def reset_savings() -> dict[str, Any]:
+    """Reset cumulative token savings recorded for this user."""
+    return _savings.reset()
+
+
+def configure_savings(
+    *,
+    enabled: bool | None = None,
+    path: str | os.PathLike[str] | None = None,
+) -> None:
+    """Configure cumulative savings tracking for this process."""
+    _savings.configure(enabled=enabled, path=path)
 
 
 # ── callable module trick ───────────────────────────────────────────────
@@ -159,11 +188,16 @@ def _resolve_type(obj: Any, hint: ContentType | str | None) -> ContentType:
 
 def _estimate_tokens(original: str, minimized: str) -> tuple[int | None, int | None]:
     """Try tiktoken for accurate counts, fall back to len//4 heuristic."""
-    try:
-        import tiktoken
+    orig, mini, _estimated, _tokenizer = _estimate_tokens_info(original, minimized)
+    return orig, mini
 
+
+def _estimate_tokens_info(original: str, minimized: str) -> tuple[int, int, bool, str]:
+    """Return token counts plus whether they are estimated."""
+    try:
+        tiktoken = import_module("tiktoken")
         enc = tiktoken.get_encoding("cl100k_base")
-        return len(enc.encode(original)), len(enc.encode(minimized))
+        return len(enc.encode(original)), len(enc.encode(minimized)), False, "cl100k_base"
     except ImportError:
         # fast heuristic: ~4 chars per token for English
-        return len(original) // 4, len(minimized) // 4
+        return len(original) // 4, len(minimized) // 4, True, "chars_per_token:4"

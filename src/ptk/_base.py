@@ -58,7 +58,7 @@ def _serialize(obj: Any) -> str:
     """
     if isinstance(obj, str):
         return obj
-    if isinstance(obj, (dict, list, tuple)):
+    if isinstance(obj, dict | list | tuple):
         import json
 
         try:
